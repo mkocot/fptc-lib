@@ -108,31 +108,31 @@ typedef __uint128_t fptud;
 #define FPT_FMASK  (((fpt)1 << FPT_FBITS) - 1)
 
 #define fl2fpt(R) ((fpt)((R) * FPT_ONE + ((R) >= 0 ? 0.5 : -0.5)))
-#define i2fpt(I) ((fptd)(I) << FPT_FBITS)
+#define i2fpt(I) ((fptd)(I) * ((fptd)1 << FPT_FBITS))
 #define fpt2i(F) ((F) >> FPT_FBITS)
 
-#define i2fpt_norm(I,n) (               \
-    (FPT_FBITS - n) >= 0 ?              \
-      ((fptd)(I) << (FPT_FBITS - n)) :  \
-      ((fptd)(I) >> -(FPT_FBITS - n))   \
+#define i2fpt_norm(I,n) (                           \
+    (FPT_FBITS - n) >= 0 ?                          \
+      ((fptd)(I) * ((fptd)1 << (FPT_FBITS - n))) :  \
+      ((fptd)(I) >> -(FPT_FBITS - n))               \
   )
-#define fpt2i_norm(F,n) (               \
-    (FPT_FBITS - n) >= 0 ?              \
-      ((F) >> (FPT_FBITS - n)) :        \
-      ((F) << -(FPT_FBITS - n))         \
+#define fpt2i_norm(F,n) (                   \
+    (FPT_FBITS - n) >= 0 ?                  \
+      ((F) >> (FPT_FBITS - n)) :            \
+      ((F) * ((fpt)1 << -(FPT_FBITS - n)))  \
   )
-#define fpt_norm(F,from,to) (           \
-    (from - to) >= 0 ?                  \
-      ((fptd)(F) << (from - to)) :      \
-      ((fptd)(F) >> -(from - to))       \
-  )                                     \
+#define fpt_norm(F,from,to) (                   \
+    (from - to) >= 0 ?                          \
+      ((fptd)(F) * ((fptd)1 << (from - to))) :  \
+      ((fptd)(F) >> -(from - to))               \
+  )                                             \
 
 #define fpt_xadd(A,B) ((A) + (B))
 #define fpt_xsub(A,B) ((A) - (B))
 #define fpt_xmul(A,B)                   \
   ((fpt)(((fptd)(A) * (fptd)(B)) >> FPT_FBITS))
 #define fpt_xdiv(A,B)                   \
-  ((fpt)(((fptd)(A) << FPT_FBITS) / (fptd)(B)))
+  ((fpt)(((fptd)(A) * ((fptd)1 << FPT_FBITS)) / (fptd)(B)))
 #define fpt_fracpart(A) ((fpt)(A) & FPT_FMASK)
 
 #define FPT_ONE       ((fpt)((fpt)1 << FPT_FBITS))
@@ -225,9 +225,9 @@ fpt_mul(fpt A, fpt B)
     if ((fptd)A < ((fptd)FPT_MAX << FPT_FBITS) / (fptd)B) _fpt_mul_overflow_handler;
   } else if (B > FPT_ZERO) {
     if ((fptd)A > ((fptd)FPT_MAX << FPT_FBITS) / (fptd)B) _fpt_mul_overflow_handler;
-    if ((fptd)A < ((fptd)FPT_MIN << FPT_FBITS) / (fptd)B) _fpt_mul_underflow_handler;
+    if ((fptd)A < ((fptd)FPT_MIN * ((fptd)1 << FPT_FBITS)) / (fptd)B) _fpt_mul_underflow_handler;
   } else if (B < FPT_ZERO) {
-    if ((fptd)A > ((fptd)FPT_MIN << FPT_FBITS) / (fptd)B) _fpt_mul_underflow_handler;
+    if ((fptd)A > ((fptd)FPT_MIN * ((fptd)1 << FPT_FBITS)) / (fptd)B) _fpt_mul_underflow_handler;
   }
   #endif
   
@@ -247,17 +247,17 @@ fpt_div(fpt A, fpt B)
    * computation overhead when doing this in here.*/
   if (fpt_abs(B) <= FPT_ONE) {
     if (A < FPT_ZERO && B < FPT_ZERO) {
-      if ((fptd)A << FPT_FBITS < (fptd)FPT_MAX * (fptd)B) _fpt_div_overflow_handler;
+      if ((fptd)A * ((fptd)1 << FPT_FBITS) < (fptd)FPT_MAX * (fptd)B) _fpt_div_overflow_handler;
     } else if (B > FPT_ZERO) {
-      if ((fptd)A << FPT_FBITS > (fptd)FPT_MAX * (fptd)B) _fpt_div_overflow_handler;
-      if ((fptd)A << FPT_FBITS < (fptd)FPT_MIN * (fptd)B) _fpt_div_underflow_handler;
+      if ((fptd)A * ((fptd)1 << FPT_FBITS) > (fptd)FPT_MAX * (fptd)B) _fpt_div_overflow_handler;
+      if ((fptd)A * ((fptd)1 << FPT_FBITS) < (fptd)FPT_MIN * (fptd)B) _fpt_div_underflow_handler;
     } else if (B < FPT_ZERO) {
-      if ((fptd)A << FPT_FBITS > (fptd)FPT_MIN * (fptd)B) _fpt_div_underflow_handler;
+      if ((fptd)A * ((fptd)1 << FPT_FBITS) > (fptd)FPT_MIN * (fptd)B) _fpt_div_underflow_handler;
     }
   }
   #endif
   
-  return (((fptd)A << FPT_FBITS) / (fptd)B);
+  return (((fptd)A * ((fptd)1 << FPT_FBITS)) / (fptd)B);
 }
 
 /*
